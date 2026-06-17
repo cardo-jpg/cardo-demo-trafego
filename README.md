@@ -2,7 +2,7 @@
 
 Protótipo navegável de uma operação de gestão de tráfego potencializada por IA — pensado para gestores que cuidam de múltiplos clientes (Meta Ads + Google Ads).
 
-🔗 **Demo ao vivo:** _(link do GitHub Pages aparece aqui após publicar)_
+🔗 **Demo ao vivo:** https://cardo-jpg.github.io/cardo-demo-trafego/
 
 ## Módulos
 

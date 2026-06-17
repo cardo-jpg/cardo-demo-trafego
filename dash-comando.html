@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cardô · Torre de Controle de Tráfego</title>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --panel2:#1c2330; --line:#262d3a;
+    --txt:#e6edf3; --muted:#8b949e; --faint:#6e7681;
+    --green:#2ea043; --green-bg:#1a3324;
+    --yellow:#d29922; --yellow-bg:#352b15;
+    --red:#f85149; --red-bg:#3a1c1c;
+    --blue:#388bfd; --accent:#7c5cff;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);color:var(--txt);padding:28px 32px;line-height:1.45;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1280px;margin:0 auto}
+
+  /* Header */
+  header{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:24px}
+  .brand{display:flex;align-items:center;gap:12px}
+  .logo{width:38px;height:38px;border-radius:9px;background:linear-gradient(135deg,var(--accent),var(--blue));
+    display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;color:#fff}
+  .brand h1{font-size:18px;font-weight:700;letter-spacing:.2px}
+  .brand p{font-size:12.5px;color:var(--muted)}
+  .meta-right{text-align:right}
+  .meta-right .day{font-size:13px;color:var(--txt);font-weight:600}
+  .meta-right .sub{font-size:12px;color:var(--muted)}
+
+  /* KPI row */
+  .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:22px}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+  .kpi .label{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px}
+  .kpi .val{font-size:23px;font-weight:700}
+  .kpi .delta{font-size:12px;margin-top:3px}
+  .up{color:var(--green)} .down{color:var(--red)} .flat{color:var(--muted)}
+  .dotline{display:flex;gap:6px;align-items:center;margin-top:8px}
+  .pill{font-size:11px;padding:1px 7px;border-radius:20px;font-weight:600}
+  .pill.g{background:var(--green-bg);color:var(--green)}
+  .pill.y{background:var(--yellow-bg);color:var(--yellow)}
+  .pill.r{background:var(--red-bg);color:var(--red)}
+
+  /* Attention banner */
+  .alert{background:linear-gradient(90deg,var(--red-bg),transparent);border:1px solid #5b2626;
+    border-left:4px solid var(--red);border-radius:10px;padding:12px 16px;margin-bottom:22px}
+  .alert h3{font-size:13px;color:var(--red);margin-bottom:6px;display:flex;align-items:center;gap:7px}
+  .alert ul{list-style:none;display:flex;flex-direction:column;gap:4px}
+  .alert li{font-size:13px;color:var(--txt)}
+  .alert li b{color:#fff}
+
+  /* Table */
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .panel-head{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+  .panel-head h2{font-size:14px;font-weight:700}
+  .panel-head .hint{font-size:12px;color:var(--faint)}
+  table{width:100%;border-collapse:collapse}
+  thead th{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;text-align:left;
+    padding:11px 14px;border-bottom:1px solid var(--line);font-weight:600;white-space:nowrap}
+  thead th.num{text-align:right}
+  tbody td{padding:13px 14px;border-bottom:1px solid var(--line);font-size:13.5px;vertical-align:middle}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr:hover{background:var(--panel2)}
+  td.num{text-align:right;font-variant-numeric:tabular-nums}
+
+  .client{display:flex;align-items:center;gap:11px}
+  .sig{width:11px;height:11px;border-radius:50%;flex:0 0 auto;box-shadow:0 0 0 3px rgba(255,255,255,.04)}
+  .sig.g{background:var(--green)} .sig.y{background:var(--yellow)} .sig.r{background:var(--red)}
+  .cname{font-weight:600}
+  .cplat{font-size:11.5px;color:var(--faint)}
+
+  /* pace bar */
+  .pace{min-width:130px}
+  .pacebar{position:relative;height:8px;background:#21262d;border-radius:6px;overflow:visible;margin-top:5px}
+  .pacefill{position:absolute;left:0;top:0;height:100%;border-radius:6px}
+  .pacefill.g{background:var(--green)} .pacefill.y{background:var(--yellow)} .pacefill.r{background:var(--red)}
+  .paceideal{position:absolute;top:-3px;width:2px;height:14px;background:#fff;opacity:.75;border-radius:2px}
+  .pacelabel{font-size:11px;color:var(--muted);margin-bottom:1px}
+  .pacelabel b{color:var(--txt)}
+
+  .trend{font-weight:700;font-size:13px}
+  .lead-meta{font-size:11px;color:var(--faint)}
+
+  footer{margin-top:18px;font-size:11.5px;color:var(--faint);text-align:center}
+  .legend{display:flex;gap:18px;justify-content:center;flex-wrap:wrap;margin-top:8px;font-size:11.5px;color:var(--muted)}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .legend i{width:9px;height:9px;border-radius:50%;display:inline-block}
+  @media(max-width:900px){.kpis{grid-template-columns:repeat(2,1fr)}body{padding:18px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <div class="logo">C</div>
+      <div>
+        <h1>Torre de Controle · Tráfego</h1>
+        <p>Cardô Marketing — visão de todos os clientes em um lugar</p>
+      </div>
+    </div>
+    <div class="meta-right">
+      <div class="day">Terça, 17 de junho de 2026</div>
+      <div class="sub">Dia 17 de 30 · ritmo ideal do mês: <b style="color:var(--txt)">57%</b></div>
+    </div>
+  </header>
+
+  <!-- KPIs -->
+  <div class="kpis">
+    <div class="kpi">
+      <div class="label">Verba investida (mês)</div>
+      <div class="val">R$ 38.420</div>
+      <div class="delta flat">de R$ 67.500 orçados</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Leads no mês</div>
+      <div class="val">1.247</div>
+      <div class="delta up">▲ 14% vs. mês anterior</div>
+    </div>
+    <div class="kpi">
+      <div class="label">CPL médio</div>
+      <div class="val">R$ 30,80</div>
+      <div class="delta up">▼ 6% (melhorou)</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Leads hoje</div>
+      <div class="val">52</div>
+      <div class="delta flat">7 clientes ativos</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Status da carteira</div>
+      <div class="dotline" style="margin-top:4px">
+        <span class="pill g">4 ok</span>
+        <span class="pill y">2 atenção</span>
+        <span class="pill r">1 crítico</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Attention -->
+  <div class="alert">
+    <h3>⚠ Precisa de você hoje</h3>
+    <ul>
+      <li><b>DFT Logística</b> — pace estourado (88% da verba em 57% do mês) e leads <b>parados há 3 dias</b>. Risco de acabar a verba dia 22.</li>
+      <li><b>Studio Pilates Norte</b> — CPL subiu <b>+41%</b> na semana (R$ 18 → R$ 25). Criativo provável saturado.</li>
+    </ul>
+  </div>
+
+  <!-- Table -->
+  <div class="panel">
+    <div class="panel-head">
+      <h2>Clientes</h2>
+      <div class="hint">⬤ semáforo · barra = pace (traço branco = ritmo ideal) · ▲▼ = tendência vs. semana passada</div>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Cliente</th>
+          <th>Pace da verba</th>
+          <th class="num">Leads (mês)</th>
+          <th class="num">Leads hoje</th>
+          <th class="num">CPL</th>
+          <th class="num">ROAS</th>
+          <th class="num">Tendência</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- CRÍTICO -->
+        <tr>
+          <td><div class="client"><span class="sig r"></span><div><div class="cname">DFT Logística</div><div class="cplat">Meta · Google</div></div></div></td>
+          <td><div class="pace"><div class="pacelabel">88% · <b>R$ 7.040</b>/R$ 8.000</div>
+            <div class="pacebar"><div class="pacefill r" style="width:88%"></div><div class="paceideal" style="left:57%"></div></div></div></td>
+          <td class="num">98<div class="lead-meta">meta: 150</div></td>
+          <td class="num" style="color:var(--red)">0</td>
+          <td class="num">R$ 71,80</td>
+          <td class="num">—</td>
+          <td class="num trend down">▼ 22%</td>
+        </tr>
+        <!-- ATENÇÃO -->
+        <tr>
+          <td><div class="client"><span class="sig y"></span><div><div class="cname">Studio Pilates Norte</div><div class="cplat">Meta</div></div></div></td>
+          <td><div class="pace"><div class="pacelabel">61% · <b>R$ 2.745</b>/R$ 4.500</div>
+            <div class="pacebar"><div class="pacefill y" style="width:61%"></div><div class="paceideal" style="left:57%"></div></div></div></td>
+          <td class="num">183<div class="lead-meta">meta: 200</div></td>
+          <td class="num">9</td>
+          <td class="num" style="color:var(--yellow)">R$ 25,00</td>
+          <td class="num">—</td>
+          <td class="num trend down">▼ 41% CPL</td>
+        </tr>
+        <tr>
+          <td><div class="client"><span class="sig y"></span><div><div class="cname">SurgClub</div><div class="cplat">Meta</div></div></div></td>
+          <td><div class="pace"><div class="pacelabel">44% · <b>R$ 1.760</b>/R$ 4.000</div>
+            <div class="pacebar"><div class="pacefill y" style="width:44%"></div><div class="paceideal" style="left:57%"></div></div></div></td>
+          <td class="num">312<div class="lead-meta">seguidores</div></td>
+          <td class="num">21</td>
+          <td class="num">R$ 5,64</td>
+          <td class="num">—</td>
+          <td class="num trend up">▲ topo</td>
+        </tr>
+        <!-- OK -->
+        <tr>
+          <td><div class="client"><span class="sig g"></span><div><div class="cname">Triad X · Daniel Fraron</div><div class="cplat">Meta · Google</div></div></div></td>
+          <td><div class="pace"><div class="pacelabel">54% · <b>R$ 6.480</b>/R$ 12.000</div>
+            <div class="pacebar"><div class="pacefill g" style="width:54%"></div><div class="paceideal" style="left:57%"></div></div></div></td>
+          <td class="num">156<div class="lead-meta">meta: 140 ✓</div></td>
+          <td class="num">8</td>
+          <td class="num">R$ 41,50</td>
+          <td class="num">4,2x</td>
+          <td class="num trend up">▲ 11%</td>
+        </tr>
+        <tr>
+          <td><div class="client"><span class="sig g"></span><div><div class="cname">Clínica Vita</div><div class="cplat">Meta · Google</div></div></div></td>
+          <td><div class="pace"><div class="pacelabel">58% · <b>R$ 8.700</b>/R$ 15.000</div>
+            <div class="pacebar"><div class="pacefill g" style="width:58%"></div><div class="paceideal" style="left:57%"></div></div></div></td>
+          <td class="num">241<div class="lead-meta">meta: 220 ✓</div></td>
+          <td class="num">11</td>
+          <td class="num">R$ 36,10</td>
+          <td class="num">5,1x</td>
+          <td class="num trend up">▲ 6%</td>
+        </tr>
+        <tr>
+          <td><div class="client"><span class="sig g"></span><div><div class="cname">AutoPeças Brasil</div><div class="cplat">Google</div></div></div></td>
+          <td><div class="pace"><div class="pacelabel">56% · <b>R$ 5.040</b>/R$ 9.000</div>
+            <div class="pacebar"><div class="pacefill g" style="width:56%"></div><div class="paceideal" style="left:57%"></div></div></div></td>
+          <td class="num">142<div class="lead-meta">meta: 130 ✓</div></td>
+          <td class="num">2</td>
+          <td class="num">R$ 35,50</td>
+          <td class="num">6,8x</td>
+          <td class="num trend flat">→ estável</td>
+        </tr>
+        <tr>
+          <td><div class="client"><span class="sig g"></span><div><div class="cname">Imóveis Horizonte</div><div class="cplat">Meta</div></div></div></td>
+          <td><div class="pace"><div class="pacelabel">52% · <b>R$ 6.655</b>/R$ 12.800</div>
+            <div class="pacebar"><div class="pacefill g" style="width:52%"></div><div class="paceideal" style="left:57%"></div></div></div></td>
+          <td class="num">115<div class="lead-meta">meta: 100 ✓</div></td>
+          <td class="num">1</td>
+          <td class="num">R$ 57,90</td>
+          <td class="num">3,4x</td>
+          <td class="num trend up">▲ 9%</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="legend">
+    <span><i style="background:var(--green)"></i> No alvo</span>
+    <span><i style="background:var(--yellow)"></i> Atenção</span>
+    <span><i style="background:var(--red)"></i> Crítico — agir hoje</span>
+    <span>│ traço branco na barra = ritmo ideal do mês (57%)</span>
+  </div>
+
+  <footer>
+    Protótipo · dados de exemplo. Versão final conecta Meta Ads + Google Ads (via Windsor.ai) e atualiza sozinha todo dia.<br>
+    Cardô Marketing · Torre de Controle de Tráfego
+  </footer>
+
+</div>
+</body>
+</html>

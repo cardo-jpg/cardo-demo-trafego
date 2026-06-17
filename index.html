@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cardô · Sistema de Tráfego Assistido por IA</title>
+<style>
+  :root{
+    --bg:#0a0e14; --panel:#141a23; --panel2:#1b2330; --line:#242c3a;
+    --txt:#e6edf3; --muted:#8b949e; --faint:#6e7681;
+    --green:#2ea043; --green-bg:#15301f;
+    --yellow:#d29922; --yellow-bg:#33290f;
+    --red:#f85149; --red-bg:#371a1a;
+    --blue:#388bfd; --accent:#7c5cff; --accent2:#b693ff;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);color:var(--txt);-webkit-font-smoothing:antialiased;display:flex;min-height:100vh}
+  a{color:inherit;text-decoration:none}
+
+  /* Sidebar */
+  .side{width:235px;flex:0 0 235px;background:#0d1219;border-right:1px solid var(--line);
+    padding:20px 14px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+  .brand{display:flex;align-items:center;gap:11px;padding:0 8px 18px;margin-bottom:10px;border-bottom:1px solid var(--line)}
+  .logo{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--accent),var(--blue));
+    display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px;color:#fff}
+  .brand .t{font-size:14px;font-weight:700;line-height:1.1}
+  .brand .s{font-size:11px;color:var(--muted)}
+  nav{display:flex;flex-direction:column;gap:3px;margin-top:8px}
+  .nav-item{display:flex;align-items:center;gap:11px;padding:10px 11px;border-radius:9px;font-size:13.5px;
+    color:var(--muted);cursor:pointer;transition:.12s}
+  .nav-item:hover{background:var(--panel);color:var(--txt)}
+  .nav-item.active{background:linear-gradient(90deg,rgba(124,92,255,.18),transparent);color:#fff}
+  .nav-item.active .ic{filter:none;opacity:1}
+  .ic{width:18px;text-align:center;opacity:.8;font-size:15px}
+  .nav-tag{margin-left:auto;font-size:9.5px;background:var(--accent);color:#fff;padding:1px 6px;border-radius:10px;font-weight:700}
+  .side-foot{margin-top:auto;font-size:10.5px;color:var(--faint);padding:10px 8px;border-top:1px solid var(--line)}
+
+  /* Main */
+  main{flex:1;padding:26px 34px;max-width:1180px;overflow-x:hidden}
+  .top{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:22px;flex-wrap:wrap;gap:12px}
+  .top h1{font-size:21px;font-weight:700}
+  .top p{font-size:13px;color:var(--muted);margin-top:2px}
+  .top .date{font-size:12.5px;color:var(--muted);text-align:right}
+  .top .date b{color:var(--txt)}
+
+  .section{display:none;animation:fade .25s ease}
+  .section.show{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  /* generic */
+  .grid{display:grid;gap:14px}
+  .g5{grid-template-columns:repeat(5,1fr)} .g4{grid-template-columns:repeat(4,1fr)}
+  .g3{grid-template-columns:repeat(3,1fr)} .g2{grid-template-columns:repeat(2,1fr)}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:16px}
+  .card.pad{padding:18px 20px}
+  .label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px}
+  .big{font-size:23px;font-weight:700}
+  .delta{font-size:12px;margin-top:3px}
+  .up{color:var(--green)} .down{color:var(--red)} .flat{color:var(--muted)}
+  .mb{margin-bottom:18px}
+  h2.sec{font-size:13px;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);margin:26px 0 13px}
+  .pill{font-size:10.5px;padding:2px 8px;border-radius:20px;font-weight:600;display:inline-block}
+  .pill.g{background:var(--green-bg);color:var(--green)} .pill.y{background:var(--yellow-bg);color:var(--yellow)}
+  .pill.r{background:var(--red-bg);color:var(--red)} .pill.b{background:rgba(56,139,253,.15);color:var(--blue)}
+  .pill.p{background:rgba(124,92,255,.16);color:var(--accent2)}
+
+  /* table */
+  table{width:100%;border-collapse:collapse}
+  thead th{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;text-align:left;
+    padding:10px 13px;border-bottom:1px solid var(--line);font-weight:600;white-space:nowrap}
+  thead th.num{text-align:right}
+  tbody td{padding:12px 13px;border-bottom:1px solid var(--line);font-size:13px;vertical-align:middle}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr:hover{background:var(--panel2)}
+  td.num{text-align:right;font-variant-numeric:tabular-nums}
+  .client{display:flex;align-items:center;gap:10px}
+  .sig{width:10px;height:10px;border-radius:50%;flex:0 0 auto}
+  .sig.g{background:var(--green)} .sig.y{background:var(--yellow)} .sig.r{background:var(--red)}
+  .cname{font-weight:600} .cplat{font-size:11px;color:var(--faint)}
+  .pacebar{position:relative;height:7px;background:#21262d;border-radius:6px;margin-top:4px;min-width:120px}
+  .pacefill{position:absolute;left:0;top:0;height:100%;border-radius:6px}
+  .pacefill.g{background:var(--green)}.pacefill.y{background:var(--yellow)}.pacefill.r{background:var(--red)}
+  .paceideal{position:absolute;top:-3px;width:2px;height:13px;background:#fff;opacity:.7}
+  .small{font-size:11px;color:var(--faint)}
+  .trend{font-weight:700}
+
+  /* alert */
+  .alert{background:linear-gradient(90deg,var(--red-bg),transparent);border:1px solid #5b2626;
+    border-left:4px solid var(--red);border-radius:10px;padding:12px 16px;margin-bottom:18px}
+  .alert h3{font-size:12.5px;color:var(--red);margin-bottom:6px}
+  .alert li{font-size:13px;list-style:none;margin-bottom:3px} .alert b{color:#fff}
+
+  /* creative cards */
+  .creo{background:var(--panel);border:1px solid var(--line);border-radius:13px;overflow:hidden;display:flex;flex-direction:column}
+  .creo .thumb{height:120px;background:linear-gradient(135deg,#1d2735,#2a2140);display:flex;align-items:center;justify-content:center;
+    font-size:30px;position:relative}
+  .creo .thumb .fatigue{position:absolute;top:9px;right:9px}
+  .creo .body{padding:13px 14px}
+  .creo .body .ang{font-weight:600;font-size:13.5px;margin-bottom:4px}
+  .creo .body .stat{font-size:12px;color:var(--muted);display:flex;justify-content:space-between;margin-top:7px}
+  .creo .body .stat b{color:var(--txt)}
+  .bar{height:5px;background:#21262d;border-radius:5px;margin-top:9px;overflow:hidden}
+  .bar i{display:block;height:100%;border-radius:5px}
+
+  /* funnel */
+  .funnel{display:flex;flex-direction:column;gap:8px}
+  .fstep{display:flex;align-items:center;gap:14px}
+  .fbar{height:38px;border-radius:8px;display:flex;align-items:center;padding:0 14px;font-weight:600;font-size:13px;color:#fff;
+    background:linear-gradient(90deg,var(--accent),var(--blue));white-space:nowrap}
+  .fmeta{font-size:12px;color:var(--muted)} .fmeta b{color:var(--txt)}
+
+  /* briefing / feed */
+  .feed{display:flex;flex-direction:column;gap:11px}
+  .fitem{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:14px 16px;display:flex;gap:13px}
+  .fitem .dot{width:30px;height:30px;border-radius:8px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-size:15px}
+  .fitem .dot.r{background:var(--red-bg)} .fitem .dot.y{background:var(--yellow-bg)}
+  .fitem .dot.g{background:var(--green-bg)} .fitem .dot.b{background:rgba(56,139,253,.15)} .fitem .dot.p{background:rgba(124,92,255,.16)}
+  .fitem .ftxt{flex:1}
+  .fitem .ftxt .h{font-weight:600;font-size:13.5px;margin-bottom:2px}
+  .fitem .ftxt .d{font-size:12.5px;color:var(--muted)}
+  .fitem .time{font-size:11px;color:var(--faint);white-space:nowrap}
+  .btn{font-size:12px;background:var(--accent);color:#fff;border:none;padding:6px 13px;border-radius:8px;font-weight:600;cursor:pointer;margin-top:9px}
+  .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--muted)}
+
+  .brief{background:var(--panel2);border:1px dashed var(--accent);border-radius:11px;padding:15px 17px}
+  .brief .bh{font-size:11px;color:var(--accent2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px}
+  .brief .row{font-size:13px;margin-bottom:7px;display:flex;gap:8px}
+  .brief .row span{color:var(--faint);min-width:78px;flex:0 0 78px}
+  .brief .row b{color:var(--txt);font-weight:600}
+
+  .demo-note{background:rgba(124,92,255,.08);border:1px solid rgba(124,92,255,.3);border-radius:9px;
+    padding:9px 14px;font-size:12px;color:var(--accent2);margin-bottom:18px}
+  @media(max-width:1000px){.g5,.g4,.g3{grid-template-columns:repeat(2,1fr)}.side{display:none}}
+</style>
+</head>
+<body>
+
+<!-- ===== SIDEBAR ===== -->
+<aside class="side">
+  <div class="brand">
+    <div class="logo">C</div>
+    <div><div class="t">Cardô · Tráfego</div><div class="s">Operação assistida por IA</div></div>
+  </div>
+  <nav>
+    <div class="nav-item active" data-sec="torre"><span class="ic">📡</span> Torre de Controle</div>
+    <div class="nav-item" data-sec="criativo"><span class="ic">🎨</span> Máquina de Criativo</div>
+    <div class="nav-item" data-sec="funil"><span class="ic">💰</span> Funil &amp; Vendas</div>
+    <div class="nav-item" data-sec="inteligencia"><span class="ic">🧠</span> Inteligência Diária</div>
+    <div class="nav-item" data-sec="relatorios"><span class="ic">📊</span> Relatórios</div>
+  </nav>
+  <div class="side-foot">Prévia do sistema completo<br>Dados de exemplo · Cardô Marketing</div>
+</aside>
+
+<!-- ===== MAIN ===== -->
+<main>
+
+  <!-- ============ TORRE DE CONTROLE ============ -->
+  <section class="section show" id="torre">
+    <div class="top">
+      <div><h1>Torre de Controle</h1><p>Todos os clientes em um lugar — onde entrar hoje, em 10 segundos.</p></div>
+      <div class="date"><b>Terça, 17 de junho</b><br>Dia 17 de 30 · ritmo ideal: 57%</div>
+    </div>
+
+    <div class="grid g5 mb">
+      <div class="card"><div class="label">Verba (mês)</div><div class="big">R$ 38.420</div><div class="delta flat">de R$ 67.500</div></div>
+      <div class="card"><div class="label">Leads (mês)</div><div class="big">1.247</div><div class="delta up">▲ 14%</div></div>
+      <div class="card"><div class="label">CPL médio</div><div class="big">R$ 30,80</div><div class="delta up">▼ 6%</div></div>
+      <div class="card"><div class="label">Receita atribuída</div><div class="big">R$ 214 mil</div><div class="delta up">▲ 19%</div></div>
+      <div class="card"><div class="label">Carteira</div>
+        <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">
+          <span class="pill g">4 ok</span><span class="pill y">2 atenção</span><span class="pill r">1 crítico</span></div></div>
+    </div>
+
+    <div class="alert">
+      <h3>⚠ Precisa de você hoje</h3>
+      <li><b>DFT Logística</b> — pace estourado (88% da verba em 57% do mês) e leads <b>parados há 3 dias</b>.</li>
+      <li><b>Studio Pilates Norte</b> — CPL subiu <b>+41%</b> na semana. Criativo provável saturado.</li>
+    </div>
+
+    <div class="card pad" style="padding:0">
+      <table>
+        <thead><tr><th>Cliente</th><th>Pace da verba</th><th class="num">Leads/mês</th><th class="num">Hoje</th><th class="num">CPL</th><th class="num">ROAS</th><th class="num">Tendência</th></tr></thead>
+        <tbody>
+          <tr><td><div class="client"><span class="sig r"></span><div><div class="cname">DFT Logística</div><div class="cplat">Meta · Google</div></div></div></td>
+            <td><div class="small">88% · R$ 7.040/8.000</div><div class="pacebar"><i class="pacefill r" style="width:88%"></i><div class="paceideal" style="left:57%"></div></div></td>
+            <td class="num">98 <span class="small">/150</span></td><td class="num down">0</td><td class="num">R$ 71,80</td><td class="num">—</td><td class="num trend down">▼22%</td></tr>
+          <tr><td><div class="client"><span class="sig y"></span><div><div class="cname">Studio Pilates Norte</div><div class="cplat">Meta</div></div></div></td>
+            <td><div class="small">61% · R$ 2.745/4.500</div><div class="pacebar"><i class="pacefill y" style="width:61%"></i><div class="paceideal" style="left:57%"></div></div></td>
+            <td class="num">183 <span class="small">/200</span></td><td class="num">9</td><td class="num" style="color:var(--yellow)">R$ 25,00</td><td class="num">—</td><td class="num trend down">▼ CPL</td></tr>
+          <tr><td><div class="client"><span class="sig y"></span><div><div class="cname">SurgClub</div><div class="cplat">Meta</div></div></div></td>
+            <td><div class="small">44% · R$ 1.760/4.000</div><div class="pacebar"><i class="pacefill y" style="width:44%"></i><div class="paceideal" style="left:57%"></div></div></td>
+            <td class="num">312 <span class="small">segs</span></td><td class="num">21</td><td class="num">R$ 5,64</td><td class="num">—</td><td class="num trend up">▲ topo</td></tr>
+          <tr><td><div class="client"><span class="sig g"></span><div><div class="cname">Triad X · Daniel Fraron</div><div class="cplat">Meta · Google</div></div></div></td>
+            <td><div class="small">54% · R$ 6.480/12.000</div><div class="pacebar"><i class="pacefill g" style="width:54%"></i><div class="paceideal" style="left:57%"></div></div></td>
+            <td class="num">156 <span class="small">/140 ✓</span></td><td class="num">8</td><td class="num">R$ 41,50</td><td class="num">4,2x</td><td class="num trend up">▲11%</td></tr>
+          <tr><td><div class="client"><span class="sig g"></span><div><div class="cname">Clínica Vita</div><div class="cplat">Meta · Google</div></div></div></td>
+            <td><div class="small">58% · R$ 8.700/15.000</div><div class="pacebar"><i class="pacefill g" style="width:58%"></i><div class="paceideal" style="left:57%"></div></div></td>
+            <td class="num">241 <span class="small">/220 ✓</span></td><td class="num">11</td><td class="num">R$ 36,10</td><td class="num">5,1x</td><td class="num trend up">▲6%</td></tr>
+          <tr><td><div class="client"><span class="sig g"></span><div><div class="cname">AutoPeças Brasil</div><div class="cplat">Google</div></div></div></td>
+            <td><div class="small">56% · R$ 5.040/9.000</div><div class="pacebar"><i class="pacefill g" style="width:56%"></i><div class="paceideal" style="left:57%"></div></div></td>
+            <td class="num">142 <span class="small">/130 ✓</span></td><td class="num">2</td><td class="num">R$ 35,50</td><td class="num">6,8x</td><td class="num trend flat">→</td></tr>
+          <tr><td><div class="client"><span class="sig g"></span><div><div class="cname">Imóveis Horizonte</div><div class="cplat">Meta</div></div></div></td>
+            <td><div class="small">52% · R$ 6.655/12.800</div><div class="pacebar"><i class="pacefill g" style="width:52%"></i><div class="paceideal" style="left:57%"></div></div></td>
+            <td class="num">115 <span class="small">/100 ✓</span></td><td class="num">1</td><td class="num">R$ 57,90</td><td class="num">3,4x</td><td class="num trend up">▲9%</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============ MÁQUINA DE CRIATIVO ============ -->
+  <section class="section" id="criativo">
+    <div class="top">
+      <div><h1>Máquina de Criativo</h1><p>O verdadeiro gargalo do Meta/Google: testar mais criativo, mais rápido, com inteligência — não achismo.</p></div>
+      <div class="date"><b>Cliente:</b> Clínica Vita<br><span class="small">(troca por cliente na versão final)</span></div>
+    </div>
+
+    <h2 class="sec">🏆 Ângulos vencedores — o que está performando (e o que saturou)</h2>
+    <div class="grid g4 mb">
+      <div class="creo"><div class="thumb">🩺<span class="fatigue pill g">novo</span></div>
+        <div class="body"><div class="ang">"Antes & Depois real"</div>
+          <div class="stat"><span>CTR</span><b>3,8%</b></div><div class="stat"><span>CPL</span><b>R$ 22</b></div>
+          <div class="small" style="margin-top:8px">Fadiga do criativo</div><div class="bar"><i style="width:18%;background:var(--green)"></i></div></div></div>
+      <div class="creo"><div class="thumb">💬<span class="fatigue pill g">escalar</span></div>
+        <div class="body"><div class="ang">"Depoimento em vídeo"</div>
+          <div class="stat"><span>CTR</span><b>4,1%</b></div><div class="stat"><span>CPL</span><b>R$ 19</b></div>
+          <div class="small" style="margin-top:8px">Fadiga do criativo</div><div class="bar"><i style="width:24%;background:var(--green)"></i></div></div></div>
+      <div class="creo"><div class="thumb">📋<span class="fatigue pill y">cansando</span></div>
+        <div class="body"><div class="ang">"Lista de sintomas"</div>
+          <div class="stat"><span>CTR</span><b>2,2%</b></div><div class="stat"><span>CPL</span><b>R$ 34</b></div>
+          <div class="small" style="margin-top:8px">Fadiga do criativo</div><div class="bar"><i style="width:68%;background:var(--yellow)"></i></div></div></div>
+      <div class="creo"><div class="thumb">🏥<span class="fatigue pill r">saturado</span></div>
+        <div class="body"><div class="ang">"Estrutura da clínica"</div>
+          <div class="stat"><span>CTR</span><b>1,1%</b></div><div class="stat"><span>CPL</span><b>R$ 58</b></div>
+          <div class="small" style="margin-top:8px">Fadiga do criativo</div><div class="bar"><i style="width:91%;background:var(--red)"></i></div></div></div>
+    </div>
+
+    <div class="grid g2">
+      <div>
+        <h2 class="sec" style="margin-top:6px">🕵️ Espião do concorrente — Meta Ad Library</h2>
+        <div class="card mb" style="padding:0">
+          <table><thead><tr><th>Concorrente</th><th>Ângulo do anúncio</th><th class="num">No ar há</th></tr></thead>
+          <tbody>
+            <tr><td>Clínica Premium</td><td>"Avaliação gratuita 1ª consulta"</td><td class="num"><span class="pill p">87 dias 🔥</span></td></tr>
+            <tr><td>Saúde Já</td><td>"Parcelamento em 12x"</td><td class="num"><span class="pill p">64 dias</span></td></tr>
+            <tr><td>Vida Plena</td><td>"Depoimento de paciente real"</td><td class="num"><span class="pill b">31 dias</span></td></tr>
+            <tr><td>Clínica Premium</td><td>"Equipe especialista (autoridade)"</td><td class="num"><span class="pill b">22 dias</span></td></tr>
+          </tbody></table>
+        </div>
+        <div class="small" style="color:var(--accent2)">💡 Anúncio no ar há muito tempo = está convertendo. "Avaliação gratuita" roda há 87 dias na concorrência — vale testar.</div>
+      </div>
+
+      <div>
+        <h2 class="sec" style="margin-top:6px">🔎 Mineração de comentários dos anúncios</h2>
+        <div class="card mb">
+          <div style="margin-bottom:12px"><span class="pill r">Objeção recorrente</span>
+            <div style="font-size:13px;margin-top:6px">"Quanto custa?" — apareceu em <b>34 comentários</b>. Preço não está claro no criativo.</div></div>
+          <div style="margin-bottom:12px"><span class="pill y">Dúvida frequente</span>
+            <div style="font-size:13px;margin-top:6px">"Atende meu convênio?" — <b>21 comentários</b>. Oportunidade de criativo respondendo isso.</div></div>
+          <div><span class="pill g">Elogio / prova social</span>
+            <div style="font-size:13px;margin-top:6px">"Fui super bem atendida" — <b>17 menções</b>. Material pronto pra depoimento.</div></div>
+        </div>
+      </div>
+    </div>
+
+    <h2 class="sec">✨ Briefings gerados pela IA — prontos pra produzir</h2>
+    <div class="grid g2 mb">
+      <div class="brief">
+        <div class="bh">Briefing #1 · gerado a partir dos dados acima</div>
+        <div class="row"><span>Ângulo</span><b>Vídeo depoimento + preço transparente (mata a objeção nº1)</b></div>
+        <div class="row"><span>Formato</span><b>Reels 9:16, 15s, paciente real falando</b></div>
+        <div class="row"><span>Gancho</span><b>"Achei que ia ser caro — me surpreendi"</b></div>
+        <div class="row"><span>CTA</span><b>"Agende sua avaliação gratuita"</b></div>
+        <div class="row"><span>Por quê</span><b>Junta o vencedor (depoimento) + objeção de preço + oferta do concorrente</b></div>
+        <button class="btn">Enviar pro designer</button> <button class="btn ghost">Refinar</button>
+      </div>
+      <div class="brief">
+        <div class="bh">Briefing #2 · substituir criativo saturado</div>
+        <div class="row"><span>Ângulo</span><b>"Atende seu convênio?" — responde dúvida frequente</b></div>
+        <div class="row"><span>Formato</span><b>Carrossel, lista de convênios aceitos</b></div>
+        <div class="row"><span>Gancho</span><b>"Seu convênio cobre? Confira a lista 👇"</b></div>
+        <div class="row"><span>CTA</span><b>"Fale com a recepção no WhatsApp"</b></div>
+        <div class="row"><span>Por quê</span><b>Aposenta o "Estrutura da clínica" (saturado, CPL R$58)</b></div>
+        <button class="btn">Enviar pro designer</button> <button class="btn ghost">Refinar</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FUNIL & VENDAS ============ -->
+  <section class="section" id="funil">
+    <div class="top">
+      <div><h1>Funil &amp; Vendas</h1><p>O diferencial: parar de otimizar CPL e começar a otimizar <b>faturamento</b>. Do clique até a venda real.</p></div>
+      <div class="date"><b>Cliente:</b> Triad X · Daniel Fraron<br><span class="small">Junho/2026</span></div>
+    </div>
+
+    <div class="grid g4 mb">
+      <div class="card"><div class="label">Leads gerados</div><div class="big">156</div><div class="delta flat">CPL R$ 41,50</div></div>
+      <div class="card"><div class="label">Viraram venda</div><div class="big">23</div><div class="delta up">15% de conversão</div></div>
+      <div class="card"><div class="label">CAC real</div><div class="big">R$ 281</div><div class="delta flat">(custo por venda)</div></div>
+      <div class="card"><div class="label">Receita gerada</div><div class="big">R$ 27,2 mil</div><div class="delta up">ROI 4,2x</div></div>
+    </div>
+
+    <h2 class="sec">🔻 Funil completo — anúncio → venda</h2>
+    <div class="card pad mb">
+      <div class="funnel">
+        <div class="fstep"><div class="fbar" style="width:100%">Impressões</div><div class="fmeta"><b>184.300</b></div></div>
+        <div class="fstep"><div class="fbar" style="width:74%">Cliques no anúncio</div><div class="fmeta"><b>3.940</b> · CTR 2,1%</div></div>
+        <div class="fstep"><div class="fbar" style="width:55%">Visitas na landing page</div><div class="fmeta"><b>3.420</b> · 87% (LP boa)</div></div>
+        <div class="fstep"><div class="fbar" style="width:34%">Leads (formulário)</div><div class="fmeta"><b>156</b> · conversão LP 4,6%</div></div>
+        <div class="fstep"><div class="fbar" style="width:16%;background:linear-gradient(90deg,var(--green),#3fb950)">Vendas fechadas</div><div class="fmeta"><b>23</b> · R$ 27,2 mil</div></div>
+      </div>
+    </div>
+
+    <h2 class="sec">🎯 Qualidade do lead por campanha — onde está o dinheiro de verdade</h2>
+    <div class="card pad" style="padding:0">
+      <table><thead><tr><th>Campanha</th><th class="num">Leads</th><th class="num">CPL</th><th class="num">Vendas</th><th class="num">CAC</th><th class="num">Veredito</th></tr></thead>
+        <tbody>
+          <tr><td>Locação · Público frio</td><td class="num">68</td><td class="num">R$ 28</td><td class="num">3</td><td class="num">R$ 635</td><td class="num"><span class="pill r">CPL baixo, vende mal</span></td></tr>
+          <tr><td>Locação · Remarketing</td><td class="num">41</td><td class="num">R$ 52</td><td class="num">12</td><td class="num">R$ 178</td><td class="num"><span class="pill g">escalar 🚀</span></td></tr>
+          <tr><td>Financiamento · Lookalike</td><td class="num">47</td><td class="num">R$ 49</td><td class="num">8</td><td class="num">R$ 288</td><td class="num"><span class="pill g">boa</span></td></tr>
+        </tbody></table>
+    </div>
+    <div class="demo-note" style="margin-top:16px">💡 <b>O insight que muda o jogo:</b> a campanha de "público frio" tem o <b>CPL mais baixo (R$28)</b> — pareceria a melhor num relatório comum. Mas vende mal: CAC de R$635. O remarketing tem CPL quase o dobro, e mesmo assim o <b>CAC é 3,5x menor</b>. Otimizando por venda (não por CPL), você realoca a verba e multiplica o faturamento do cliente.</div>
+  </section>
+
+  <!-- ============ INTELIGÊNCIA DIÁRIA ============ -->
+  <section class="section" id="inteligencia">
+    <div class="top">
+      <div><h1>Inteligência Diária</h1><p>Toda manhã, a IA varre as contas e te entrega só o que importa — com a ação recomendada.</p></div>
+      <div class="date"><b>Hoje, 07:00</b><br><span class="small">7 contas analisadas em 40s</span></div>
+    </div>
+
+    <div class="feed">
+      <div class="fitem"><div class="dot r">🔴</div><div class="ftxt">
+        <div class="h">DFT Logística vai ficar sem verba dia 22</div>
+        <div class="d">Gastando R$ 412/dia com orçamento até dia 30. No ritmo atual a verba acaba 8 dias antes. <b>Ação:</b> reduzir orçamento diário p/ R$ 198 ou avisar o cliente sobre aporte.</div>
+        <button class="btn">Aplicar ajuste (pausado p/ revisão)</button> <button class="btn ghost">Ignorar</button>
+      </div><div class="time">07:00</div></div>
+
+      <div class="fitem"><div class="dot r">🔴</div><div class="ftxt">
+        <div class="h">DFT — leads zerados há 3 dias</div>
+        <div class="d">Última conversão dia 14. CTR caiu 40%. Provável saturação de público + criativo. <b>Ação:</b> trocar criativo (ver Máquina de Criativo) e ampliar público.</div>
+      </div><div class="time">07:00</div></div>
+
+      <div class="fitem"><div class="dot p">💰</div><div class="ftxt">
+        <div class="h">Oportunidade: realocar verba no Triad X</div>
+        <div class="d">Campanha "Remarketing" tem CAC 3,5x melhor que "Público frio", mas recebe menos verba. <b>Ação:</b> mover R$ 1.500/mês de frio → remarketing. Projeção: +6 vendas/mês.</div>
+        <button class="btn">Ver simulação</button>
+      </div><div class="time">07:00</div></div>
+
+      <div class="fitem"><div class="dot y">🟡</div><div class="ftxt">
+        <div class="h">Studio Pilates — criativo saturando</div>
+        <div class="d">CPL +41% na semana (R$18→R$25). Frequência em 4,2 (alta). <b>Ação:</b> aposentar criativo "Lista de sintomas" e subir o briefing já gerado.</div>
+      </div><div class="time">07:00</div></div>
+
+      <div class="fitem"><div class="dot g">🟢</div><div class="ftxt">
+        <div class="h">Clínica Vita batendo meta com folga</div>
+        <div class="d">241 leads (meta 220) com CPL caindo. ROAS 5,1x. <b>Ação:</b> nenhuma — candidato a aumento de verba se o cliente topar escalar.</div>
+      </div><div class="time">07:00</div></div>
+
+      <div class="fitem"><div class="dot b">📣</div><div class="ftxt">
+        <div class="h">Concorrente da Clínica Vita subiu oferta nova</div>
+        <div class="d">"Avaliação gratuita" no ar há 87 dias (forte sinal de que converte). <b>Ação:</b> considerar oferta equivalente — briefing sugerido na Máquina de Criativo.</div>
+      </div><div class="time">07:00</div></div>
+    </div>
+  </section>
+
+  <!-- ============ RELATÓRIOS ============ -->
+  <section class="section" id="relatorios">
+    <div class="top">
+      <div><h1>Relatórios</h1><p>Report do cliente gerado sozinho — vira até apresentação pronta pra reunião.</p></div>
+      <div class="date"><b>Fechamento</b><br>Maio → Junho/2026</div>
+    </div>
+
+    <div class="grid g3 mb">
+      <div class="card"><div class="label">Relatórios prontos</div><div class="big">7/7</div><div class="delta up">gerados automaticamente</div></div>
+      <div class="card"><div class="label">Tempo economizado</div><div class="big">~9h</div><div class="delta flat">vs. montar na mão</div></div>
+      <div class="card"><div class="label">Formato</div><div class="big">PDF + Slides</div><div class="delta flat">via Gamma</div></div>
+    </div>
+
+    <h2 class="sec">📄 Prévia — Relatório Clínica Vita (Junho)</h2>
+    <div class="card pad mb">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div style="font-size:16px;font-weight:700">Clínica Vita — Resultados de Junho</div>
+        <div><button class="btn">Gerar apresentação (Gamma)</button> <button class="btn ghost">Baixar PDF</button></div>
+      </div>
+      <div class="grid g4 mb">
+        <div class="card" style="background:var(--panel2)"><div class="label">Investimento</div><div class="big">R$ 8.700</div></div>
+        <div class="card" style="background:var(--panel2)"><div class="label">Leads</div><div class="big">241</div><div class="delta up">▲ 19% vs. maio</div></div>
+        <div class="card" style="background:var(--panel2)"><div class="label">CPL</div><div class="big">R$ 36</div><div class="delta up">▼ 8%</div></div>
+        <div class="card" style="background:var(--panel2)"><div class="label">ROAS</div><div class="big">5,1x</div><div class="delta up">▲ 0,4</div></div>
+      </div>
+      <div style="font-size:13.5px;color:var(--muted);line-height:1.6">
+        <b style="color:var(--txt)">Resumo da IA:</b> Junho foi o melhor mês da conta. O ângulo de <b>depoimento em vídeo</b> puxou o CPL pra baixo e respondeu por 38% dos leads. A campanha de remarketing segue como a mais rentável. <b>Para julho:</b> escalar os 2 criativos vencedores, aposentar "Estrutura da clínica" (saturado) e testar oferta de avaliação gratuita (movimento da concorrência).
+      </div>
+    </div>
+    <div class="demo-note">📌 Na versão final: 1 clique gera o relatório de cada cliente com os números reais do mês + um resumo em linguagem de gestor, e exporta como apresentação no Gamma pra reunião.</div>
+  </section>
+
+</main>
+
+<script>
+  const items = document.querySelectorAll('.nav-item');
+  const secs = document.querySelectorAll('.section');
+  items.forEach(it=>it.addEventListener('click',()=>{
+    items.forEach(i=>i.classList.remove('active'));
+    it.classList.add('active');
+    const id = it.dataset.sec;
+    secs.forEach(s=>s.classList.toggle('show', s.id===id));
+    window.scrollTo({top:0,behavior:'smooth'});
+  }));
+</script>
+</body>
+</html>
